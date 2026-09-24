@@ -40,21 +40,27 @@ Harness's model directory. Please support the original project.
 
 ## Install
 
-Through the plugin registry:
-
-```sh
-dsh plugin --profile web add dsh-t3-model-picker
-```
-
 From this repository:
 
 ```sh
 dsh plugin --profile web add github:yusufameri/dsh-t3-model-picker
 ```
 
-Both reconcile the profile's bundle list, so the next boot merges the plugin's
-patch and loads its client half. Removing the bundle restores the shipped model
-selector with no residue.
+Or from the release tarball, which needs no build step:
+
+```sh
+dsh plugin --profile web add https://github.com/yusufameri/dsh-t3-model-picker/releases/latest/download/dsh-t3-model-picker.tgz
+```
+
+Once the package is on npm, the registry form is one word shorter:
+
+```sh
+dsh plugin --profile web add dsh-t3-model-picker
+```
+
+Any of them reconciles the profile's bundle list, so the next boot merges the
+plugin's patch and loads its client half. Removing the bundle restores the
+shipped model selector with no residue.
 
 ## Screenshots
 
