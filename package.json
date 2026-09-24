@@ -1,0 +1,52 @@
+{
+  "name": "dsh-t3-model-picker",
+  "version": "1.0.0",
+  "description": "T3 Code's model picker for DeepSeek Harness: a provider rail, provider-grouped search, favorites and Cmd/Ctrl+1..9 shortcuts in the composer.",
+  "type": "module",
+  "license": "MIT",
+  "author": "yusufameri",
+  "homepage": "https://github.com/yusufameri/dsh-t3-model-picker#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yusufameri/dsh-t3-model-picker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yusufameri/dsh-t3-model-picker/issues"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "dsh",
+    "cordis-plugin",
+    "model-picker",
+    "t3code"
+  ],
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-model-selection",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    },
+    "manifestVersion": 1
+  }
+}

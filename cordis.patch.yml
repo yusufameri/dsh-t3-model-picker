@@ -1,0 +1,5 @@
+# T3 model picker bundle patch: one row inserting the bundle's Host half.
+# The Client half (`./client`) shadows the shipped composer model seat.
+- insert:
+    - id: t3-model-picker
+      name: 'dsh-t3-model-picker'
