@@ -124,6 +124,12 @@ node scripts/encode-gif.mjs <run-dir> <out.gif> --fps 12 --speed 1.8 --start 1.1
 picker, and it restores the browser's favorites when it finishes. The encoder
 crops, resizes, and assembles the GIF with `sharp`; it needs no `ffmpeg`.
 
+## Releasing
+
+[RELEASING.md](https://github.com/yusufameri/dsh-t3-model-picker/blob/main/RELEASING.md)
+covers the npm token setup, the tag-driven release workflow, and the manual
+publish fallback.
+
 ## License
 
 [MIT](LICENSE). The interface this plugin reproduces comes from

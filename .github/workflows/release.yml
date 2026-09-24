@@ -1,0 +1,51 @@
+name: Release
+
+# Publishes the package to npm and attaches the packed tarball to a GitHub
+# Release. Needs the repository secret NPM_TOKEN: an npm granular access token
+# with read-and-write permission for dsh-t3-model-picker (see RELEASING.md).
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Tag matches package.json
+        run: |
+          want=$(node -p "require('./package.json').version")
+          have="${GITHUB_REF_NAME#v}"
+          if [ "$want" != "$have" ]; then
+            echo "::error::package.json is $want but the tag is $have — bump the version first."
+            exit 1
+          fi
+
+      - name: Publish to npm
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Pack the version-free tarball asset
+        run: |
+          npm pack
+          mv dsh-t3-model-picker-*.tgz dsh-t3-model-picker.tgz
+
+      - name: Attach the tarball to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            && gh release upload "$GITHUB_REF_NAME" dsh-t3-model-picker.tgz --clobber \
+            || gh release create "$GITHUB_REF_NAME" dsh-t3-model-picker.tgz --title "$GITHUB_REF_NAME" --generate-notes
