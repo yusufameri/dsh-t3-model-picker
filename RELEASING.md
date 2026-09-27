@@ -1,43 +1,58 @@
 # Releasing
 
-`dsh plugin --profile web add dsh-t3-model-picker` only works for other people
-once the package is on the npm registry. Until then they install from this
-repository or from the release tarball; both work today and are documented in
-the [README](README.md#install).
+`dsh plugin --profile web add dsh-t3-model-picker` pulls from the npm registry.
+A version reaches it when a version bump merges to `main`, because the
+[Release](.github/workflows/release.yml) workflow reads `version` from
+`package.json`, publishes it if the registry does not have it, and attaches the
+packed tarball to a GitHub Release named `v<version>`.
 
 ## One-time setup
 
-1. Sign in to npm: `npm login` (or drop a token in `~/.npmrc`).
-2. Create an npm **granular access token** with *Read and write* permission for
+1. Create an npm **granular access token** with *Read and write* permission for
    the `dsh-t3-model-picker` package, and add it to this repository as the
-   secret `NPM_TOKEN` (`gh secret set NPM_TOKEN`). The publish job reads it;
-   no other step needs npm credentials.
+   secret `NPM_TOKEN`:
+
+   ```sh
+   gh secret set NPM_TOKEN
+   ```
+
+   The publish job reads it and no other step needs npm credentials. A classic
+   npm token will not do: npm asks for a one-time password on every publish
+   made with one, which a CI runner cannot answer.
+
+2. Confirm the secret landed with `gh secret list`.
+
+Without the secret the workflow still runs and still reports, but it publishes
+nothing and says so in a warning annotation. Nothing else breaks.
 
 ## Cutting a release
 
-1. Bump `version` in `package.json` and commit it.
-2. Tag and push:
+1. Bump `version` in `package.json`.
+2. Open a PR and merge it.
 
-   ```sh
-   git tag v1.2.3
-   git push origin main --tags
-   ```
+That is the whole procedure. The workflow publishes with `--provenance`, which
+gives the registry a signed link back to this repository and the exact workflow
+run, then creates the GitHub Release with a version-free
+`dsh-t3-model-picker.tgz` asset.
 
-3. The [`Release`](.github/workflows/release.yml) workflow checks that the tag
-   matches `package.json`, publishes with `--provenance`, and attaches the
-   packed tarball to a GitHub Release named after the tag. Provenance gives the
-   registry a signed link back to this repository and the exact workflow run.
+Merging anything else is harmless: when the registry already has the version in
+`package.json` the publish steps are skipped, so a re-run or a follow-up commit
+on the same version changes nothing.
+
+To publish a version that is already on `main` without merging anything, run
+the workflow by hand from the Actions tab.
 
 ## Publishing by hand
 
-If the workflow is unavailable, the same publish from a clean checkout:
+Only for recovering from a workflow failure. The same publish from a clean
+checkout, with a granular token in `~/.npmrc`:
 
 ```sh
 npm publish --access public
 ```
 
-Then attach the tarball under the version-free asset name the `tarball:` field
-in the plugin list expects:
+Then attach the tarball under the version-free asset name that the
+`releases/latest/download/` path expects:
 
 ```sh
 npm pack

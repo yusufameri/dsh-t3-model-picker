@@ -1,12 +1,16 @@
 name: Release
 
 # Publishes the package to npm and attaches the packed tarball to a GitHub
-# Release. Needs the repository secret NPM_TOKEN: an npm granular access token
-# with read-and-write permission for dsh-t3-model-picker (see RELEASING.md).
+# Release. There is no tagging step: every push to main reads the version from
+# package.json and publishes it if the registry does not have it yet, so a
+# merged version bump is the whole release. Needs the repository secret
+# NPM_TOKEN: an npm granular access token with read-and-write permission for
+# dsh-t3-model-picker (see RELEASING.md).
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -23,29 +27,50 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - name: Tag matches package.json
+      - name: Read the version
+        id: version
+        run: echo "value=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # The one place a release can be skipped, so a merge that is not a
+      # release, a re-run, and a push that lands after the npm publish all
+      # converge on the same end state.
+      - name: Decide whether to publish
+        id: decide
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          want=$(node -p "require('./package.json').version")
-          have="${GITHUB_REF_NAME#v}"
-          if [ "$want" != "$have" ]; then
-            echo "::error::package.json is $want but the tag is $have — bump the version first."
-            exit 1
+          version="${{ steps.version.outputs.value }}"
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::$version was not published: the NPM_TOKEN secret is not set. See RELEASING.md."
+            exit 0
           fi
+          if npm view "dsh-t3-model-picker@$version" version >/dev/null 2>&1; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "$version is already on npm, nothing to publish."
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "Publishing $version."
 
       - name: Publish to npm
+        if: steps.decide.outputs.ready == 'true'
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Pack the version-free tarball asset
+        if: steps.decide.outputs.ready == 'true'
         run: |
           npm pack
           mv dsh-t3-model-picker-*.tgz dsh-t3-model-picker.tgz
 
       - name: Attach the tarball to the release
+        if: steps.decide.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
-            && gh release upload "$GITHUB_REF_NAME" dsh-t3-model-picker.tgz --clobber \
-            || gh release create "$GITHUB_REF_NAME" dsh-t3-model-picker.tgz --title "$GITHUB_REF_NAME" --generate-notes
+          tag="v${{ steps.version.outputs.value }}"
+          gh release view "$tag" >/dev/null 2>&1 \
+            && gh release upload "$tag" dsh-t3-model-picker.tgz --clobber \
+            || gh release create "$tag" dsh-t3-model-picker.tgz --title "$tag" --generate-notes
