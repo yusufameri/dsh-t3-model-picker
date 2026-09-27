@@ -192,19 +192,19 @@ async function boot({ platform }) {
   }
 }
 
-const MAC = { metaKey: true, code: 'KeyM', key: 'm' }
-const OTHER = { ctrlKey: true, code: 'KeyM', key: 'm' }
+const MAC = { metaKey: true, shiftKey: true, code: 'KeyM', key: 'M' }
+const OTHER = { ctrlKey: true, shiftKey: true, code: 'KeyM', key: 'M' }
 
 async function main() {
-  console.log('\nmacOS, Cmd:')
+  console.log('\nmacOS, Cmd+Shift:')
   const mac = await boot({ platform: 'MacIntel' })
   await mac.render(1)
 
   check('the card starts closed', mac.panels() === 0)
 
   const opened = await mac.press(MAC)
-  check('Cmd+M opens the card', mac.panels() === 1, `panels=${mac.panels()}`)
-  check('Cmd+M is consumed, not passed on to the host', opened.defaultPrevented)
+  check('Cmd+Shift+M opens the card', mac.panels() === 1, `panels=${mac.panels()}`)
+  check('the chord is consumed, not passed on to the host', opened.defaultPrevented)
   check('the search field takes focus on open', mac.search() !== null
     && mac.window.document.activeElement === mac.search())
 
@@ -213,25 +213,30 @@ async function main() {
   mac.window.document.body.appendChild(editor)
   editor.focus()
   await mac.press(MAC, editor)
-  check('Cmd+M closes the card again', mac.panels() === 0, `panels=${mac.panels()}`)
+  check('Cmd+Shift+M closes the card again', mac.panels() === 0, `panels=${mac.panels()}`)
+
+  // The bare Cmd+M text binding is not the chord, so it must survive.
+  const bare = await mac.press({ metaKey: true, code: 'KeyM', key: 'm' }, editor)
+  check('a bare Cmd+M is left to the text field', bare.defaultPrevented === false)
+  check('a bare Cmd+M leaves the card closed', mac.panels() === 0, `panels=${mac.panels()}`)
 
   await mac.press({ code: 'KeyM', key: 'm' })
   check('a bare M does nothing', mac.panels() === 0)
 
-  await mac.press({ ...MAC, shiftKey: true })
-  check('Cmd+Shift+M does nothing', mac.panels() === 0)
+  await mac.press({ metaKey: true, code: 'KeyM', key: 'm' })
+  check('Cmd+M without Shift does nothing', mac.panels() === 0)
 
   await mac.press({ ...MAC, altKey: true })
-  check('Cmd+Alt+M does nothing', mac.panels() === 0)
+  check('Cmd+Alt+Shift+M does nothing', mac.panels() === 0)
 
   await mac.press({ ...MAC, repeat: true })
-  check('a held Cmd+M does not flicker the card open', mac.panels() === 0)
+  check('a held chord does not flicker the card open', mac.panels() === 0)
 
   await mac.press(OTHER)
-  check('Ctrl+M does nothing on macOS', mac.panels() === 0)
+  check('Ctrl+Shift+M does nothing on macOS', mac.panels() === 0)
 
-  await mac.press({ metaKey: true, code: 'KeyN', key: 'n' })
-  check('Cmd+N does nothing', mac.panels() === 0)
+  await mac.press({ metaKey: true, shiftKey: true, code: 'KeyN', key: 'N' })
+  check('Cmd+Shift+N does nothing', mac.panels() === 0)
 
   // The trigger click path, which shares `toggle` with the chord.
   await mac.click(mac.triggers()[0])
@@ -245,7 +250,7 @@ async function main() {
   await mac.click(effortRow)
   check('the effort pane opens', mac.window.document.querySelector('.t3mp-pane-head') !== null)
   await mac.press(MAC)
-  check('Cmd+M closes the card from the effort pane too', mac.panels() === 0, `panels=${mac.panels()}`)
+  check('the chord closes the card from the effort pane too', mac.panels() === 0, `panels=${mac.panels()}`)
 
   await mac.press(MAC)
   await mac.press({ key: 'Escape' }, mac.search())
@@ -269,26 +274,26 @@ async function main() {
   check('an unavailable seat ignores the chord', mac.panels() === 0, `panels=${mac.panels()}`)
 
   await mac.render(1)
-  check('the trigger tooltip advertises ⌘M on macOS', mac.triggers()[0].title.endsWith('⌘M'), mac.triggers()[0].title)
+  check('the trigger tooltip advertises ⌘⇧M on macOS', mac.triggers()[0].title.endsWith('⌘⇧M'), mac.triggers()[0].title)
 
   await mac.unmount()
   await mac.press(MAC)
   check('an unmounted seat releases the chord', mac.panels() === 0, `panels=${mac.panels()}`)
   mac.dispose()
 
-  console.log('\nWindows and Linux, Ctrl:')
+  console.log('\nWindows and Linux, Ctrl+Shift:')
   const pc = await boot({ platform: 'Win32' })
   await pc.render(1)
-  check('the tooltip advertises Ctrl+M off macOS', pc.triggers()[0].title.endsWith('Ctrl+M'), pc.triggers()[0].title)
+  check('the tooltip advertises Ctrl+Shift+M off macOS', pc.triggers()[0].title.endsWith('Ctrl+Shift+M'), pc.triggers()[0].title)
   await pc.press(MAC)
-  check('Cmd+M does nothing off macOS', pc.panels() === 0, `panels=${pc.panels()}`)
+  check('Cmd+Shift+M does nothing off macOS', pc.panels() === 0, `panels=${pc.panels()}`)
   await pc.press(OTHER)
-  check('Ctrl+M opens the card', pc.panels() === 1, `panels=${pc.panels()}`)
+  check('Ctrl+Shift+M opens the card', pc.panels() === 1, `panels=${pc.panels()}`)
   await pc.press(OTHER)
-  check('Ctrl+M closes the card', pc.panels() === 0, `panels=${pc.panels()}`)
+  check('Ctrl+Shift+M closes the card', pc.panels() === 0, `panels=${pc.panels()}`)
 
   // A layout where M is not the letter m, such as Dvorak or a non-Latin one.
-  await pc.press({ ctrlKey: true, code: 'KeyM', key: 'ь' })
+  await pc.press({ ctrlKey: true, shiftKey: true, code: 'KeyM', key: 'ь' })
   check('the chord follows the physical key, not the layout', pc.panels() === 1, `panels=${pc.panels()}`)
 
   await pc.unmount()

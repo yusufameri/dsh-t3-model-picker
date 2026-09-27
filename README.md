@@ -5,8 +5,9 @@ ported from [T3 Code](https://github.com/pingdotgg/t3code)'s model selector.
 
 ![The picker: provider rail, grouped search, favorites and jump shortcuts](assets/demo.gif)
 
-Open the picker with `Cmd`/`Ctrl`+`M`, search across every provider, star what
-you use, and reach the first nine rows with `Cmd`/`Ctrl`+`1`…`9`.
+Open the picker with `Cmd`/`Ctrl`+`Shift`+`M`, search across every provider,
+star what you use, and reach the first nine rows with
+`Cmd`/`Ctrl`+`1`…`9`.
 
 ## Credit
 
@@ -33,10 +34,11 @@ Harness's model directory. Please support the original project.
 - **Jump shortcuts.** `Cmd`+`1`…`9` on macOS, `Ctrl`+`1`…`9` elsewhere, select
   the first nine rows of the visible list; each of those rows shows its chord in
   a `kbd` chip. The listener is live only while the card is open.
-- **Toggle shortcut.** `Cmd`+`M` on macOS, `Ctrl`+`M` elsewhere, opens the card
-  when it is closed and closes it when it is open, from anywhere in the window
-  including the composer editor. The trigger's tooltip carries the chord. On a
-  locked session the chord is inert, as the trigger is.
+- **Toggle shortcut.** `Cmd`+`Shift`+`M` on macOS, `Ctrl`+`Shift`+`M`
+  elsewhere, opens the card when it is closed and closes it when it is open,
+  from anywhere in the window including the composer editor. The trigger's
+  tooltip carries the chord. On a locked session the chord is inert, as the
+  trigger is. The shift leaves the bare `Cmd`+`M` text binding alone.
 - **Unavailable models.** Providers the host does not report as routable are
   marked on their rows, on the rail tile's tooltip, and on the trigger.
 - **Reasoning effort.** A footer row opens the effort levels the current model
@@ -101,20 +103,17 @@ Four deliberate departures, all recorded in `client.js`:
   only effort control.
 - The row of the model in use carries a check mark. This seat is single-select
   and the trigger is not always in view.
-- `Cmd`/`Ctrl`+`M` opens and closes the card. T3 leaves opening to the trigger
-  alone, so a chord bound to the trigger would mean holding `Cmd` and reaching
-  for the mouse.
+- `Cmd`/`Ctrl`+`Shift`+`M` opens and closes the card. T3 leaves opening to the
+  trigger alone, so a chord bound to the trigger would mean holding `Cmd` and
+  reaching for the mouse.
 
 ## Known limits
 
 - The picker needs a session-scoped model directory. Addressed subagent
   sessions expose none, so the seat stays absent there and the chord has
   nothing to open.
-- Jump chords stay open-only, as in T3. `Cmd`/`Ctrl`+`M` is the one chord that
-  works with the card closed.
-- The chord claims `Cmd`/`Ctrl`+`M` window-wide, so it takes that chord away
-  from text fields. On macOS that means the "move to end of line" binding in
-  the composer editor no longer fires while this plugin is loaded.
+- Jump chords stay open-only, as in T3. `Cmd`/`Ctrl`+`Shift`+`M` is the one
+  chord that works with the card closed.
 - The effort footer only ever shows models whose provider advertises reasoning
   metadata.
 

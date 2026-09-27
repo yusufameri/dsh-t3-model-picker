@@ -23,8 +23,9 @@
  *     shadowed seat was the only surface that exposed it in the composer;
  *   - the row of the model in use carries a check mark, because this seat is
  *     single-select and the trigger is not always in view;
- *   - Cmd/Ctrl+M opens and closes the card, which T3 leaves to the trigger
- *     alone, so the picker answers a chord while the composer holds focus.
+ *   - Cmd/Ctrl+Shift+M opens and closes the card, which T3 leaves to the
+ *     trigger alone, so the picker answers a chord while the composer holds
+ *     focus.
  */
 
 window.__ModuleLoader__.load({
@@ -226,19 +227,20 @@ window.__ModuleLoader__.load({
       return Number(event.key) - 1
     }
 
-    /** The Cmd/Ctrl+M label for the open/close chord. */
+    /** The Cmd/Ctrl+Shift+M label for the open/close chord. */
     function toggleLabel() {
-      return isCommandPlatform() ? '⌘M' : 'Ctrl+M'
+      return isCommandPlatform() ? '⌘⇧M' : 'Ctrl+Shift+M'
     }
 
     /**
-     * Whether a keydown is the open/close chord: Cmd/Ctrl+M alone, no Alt or
-     * Shift beside it, and no auto-repeat, so holding the chord does not
-     * flicker the card.
+     * Whether a keydown is the open/close chord: Cmd/Ctrl+Shift+M, with no Alt
+     * beside it and no auto-repeat, so holding the chord does not flicker the
+     * card. Shift is part of the chord, which keeps the bare Cmd/Ctrl+M text
+     * binding in the composer working.
      */
     function isToggleChord(event) {
       const primary = isCommandPlatform() ? event.metaKey : event.ctrlKey
-      if (!primary || event.altKey || event.shiftKey || event.repeat) return false
+      if (!primary || !event.shiftKey || event.altKey || event.repeat) return false
       return event.code === 'KeyM' || String(event.key).toLowerCase() === 'm'
     }
 
@@ -1341,10 +1343,11 @@ window.__ModuleLoader__.load({
       ctx.remote.$on('llm/adapters-updated', refresh)
       ctx.remote.$on('settings/document-updated', refresh)
 
-      // Cmd/Ctrl+M opens and closes the card. It has to be document-wide and
-      // live while the card is closed, so it lives here rather than in the
-      // component, and it claims the chord with stopImmediatePropagation so a
-      // host binding on the same keys never also runs.
+      // Cmd/Ctrl+Shift+M opens and closes the card. It has to be
+      // document-wide and live while the card is closed, so it lives here
+      // rather than in the component, and it claims the chord with
+      // stopImmediatePropagation so a host binding on the same keys never also
+      // runs.
       ctx.effect(() => {
         const onKeyDown = (event) => {
           if (!isToggleChord(event)) return
