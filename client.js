@@ -16,13 +16,15 @@
  * rail on the left (Favorites first), a borderless search field at the top of
  * the results column, model rows that carry a provider footer line, a star
  * toggle per row, and Cmd/Ctrl+1..9 jump shortcuts for the first nine rows of
- * the visible list. Three deliberate departures:
+ * the visible list. Four deliberate departures:
  *   - search results are grouped under provider headings, where T3 renders one
  *     flat ranked list;
  *   - a footer row keeps the reasoning-effort selector reachable, since the
  *     shadowed seat was the only surface that exposed it in the composer;
  *   - the row of the model in use carries a check mark, because this seat is
- *     single-select and the trigger is not always in view.
+ *     single-select and the trigger is not always in view;
+ *   - Cmd/Ctrl+M opens and closes the card, which T3 leaves to the trigger
+ *     alone, so the picker answers a chord while the composer holds focus.
  */
 
 window.__ModuleLoader__.load({
@@ -222,6 +224,46 @@ window.__ModuleLoader__.load({
       if (!primary || event.shiftKey || event.altKey) return null
       if (!/^[1-9]$/u.test(event.key)) return null
       return Number(event.key) - 1
+    }
+
+    /** The Cmd/Ctrl+M label for the open/close chord. */
+    function toggleLabel() {
+      return isCommandPlatform() ? '⌘M' : 'Ctrl+M'
+    }
+
+    /**
+     * Whether a keydown is the open/close chord: Cmd/Ctrl+M alone, no Alt or
+     * Shift beside it, and no auto-repeat, so holding the chord does not
+     * flicker the card.
+     */
+    function isToggleChord(event) {
+      const primary = isCommandPlatform() ? event.metaKey : event.ctrlKey
+      if (!primary || event.altKey || event.shiftKey || event.repeat) return false
+      return event.code === 'KeyM' || String(event.key).toLowerCase() === 'm'
+    }
+
+    // ----------------------------------------------------------- toggle chord
+
+    /** Whether a node is in the document and actually laid out. */
+    function isRendered(node) {
+      return node?.isConnected === true && node.getClientRects().length > 0
+    }
+
+    /**
+     * The mounted pickers, in mount order. The chord is document-wide and the
+     * card has to answer it while closed, so one listener in `apply` serves
+     * every seat; the seat that takes the keystroke is the last mounted one
+     * still on screen and not locked.
+     */
+    const mountedPickers = new Set()
+
+    /** The picker the toggle chord drives, or null when none can take it. */
+    function toggleTarget() {
+      let target = null
+      for (const picker of mountedPickers) {
+        if (picker.enabled()) target = picker
+      }
+      return target
     }
 
     // ------------------------------------------------------------- favorites
@@ -616,6 +658,12 @@ window.__ModuleLoader__.load({
         routable.load()
       }, [current, favoriteList.length, reload, routable])
 
+      /** What the trigger click and the toggle chord both do. */
+      const toggle = useCallback(() => {
+        if (open) close(true)
+        else show()
+      }, [close, open, show])
+
       const submit = useCallback((selection) => {
         lastActionRef.current = 'select'
         triggerRef.current?.focus()
@@ -723,6 +771,19 @@ window.__ModuleLoader__.load({
         window.addEventListener('keydown', onKeyDown, true)
         return () => { window.removeEventListener('keydown', onKeyDown, true) }
       }, [activate, busy, current, open, visibleRows])
+
+      // Lend this seat to the document-wide toggle chord. The handle reads the
+      // live DOM and the current props, so it is never stale between the
+      // keystroke and the render that follows it.
+      useEffect(() => {
+        if (!available) return undefined
+        const handle = {
+          enabled: () => locked !== true && isRendered(rootRef.current),
+          toggle,
+        }
+        mountedPickers.add(handle)
+        return () => { mountedPickers.delete(handle) }
+      }, [available, locked, toggle])
 
       // Portaled placement above the trigger, right edges aligned.
       useLayoutEffect(() => {
@@ -1060,9 +1121,9 @@ window.__ModuleLoader__.load({
           'aria-label': triggerAria,
           'aria-haspopup': 'dialog',
           'aria-expanded': open,
-          title: triggerLabel,
+          title: `${triggerLabel} · ${toggleLabel()}`,
           disabled: locked,
-          onClick: () => { if (open) close(true); else show() },
+          onClick: toggle,
         },
           current !== null
             ? h(ProviderGlyph, { providerId: current.provider, name: currentRow?.providerName ?? current.provider, className: 't3mp-trigger-glyph' })
@@ -1279,6 +1340,23 @@ window.__ModuleLoader__.load({
       ctx.on('connection/reset', refresh)
       ctx.remote.$on('llm/adapters-updated', refresh)
       ctx.remote.$on('settings/document-updated', refresh)
+
+      // Cmd/Ctrl+M opens and closes the card. It has to be document-wide and
+      // live while the card is closed, so it lives here rather than in the
+      // component, and it claims the chord with stopImmediatePropagation so a
+      // host binding on the same keys never also runs.
+      ctx.effect(() => {
+        const onKeyDown = (event) => {
+          if (!isToggleChord(event)) return
+          const target = toggleTarget()
+          if (target === null) return
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          target.toggle()
+        }
+        window.addEventListener('keydown', onKeyDown, true)
+        return () => { window.removeEventListener('keydown', onKeyDown, true) }
+      }, 't3-model-picker: toggle chord')
 
       ctx.slots.inject('conversation.input.model', () => ctx.slots.register({
         name: 'conversation.input.model',

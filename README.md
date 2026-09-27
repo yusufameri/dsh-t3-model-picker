@@ -5,8 +5,8 @@ ported from [T3 Code](https://github.com/pingdotgg/t3code)'s model selector.
 
 ![The picker: provider rail, grouped search, favorites and jump shortcuts](assets/demo.gif)
 
-Open the picker, search across every provider, star what you use, and reach the
-first nine rows with `Cmd`/`Ctrl`+`1`…`9`.
+Open the picker with `Cmd`/`Ctrl`+`M`, search across every provider, star what
+you use, and reach the first nine rows with `Cmd`/`Ctrl`+`1`…`9`.
 
 ## Credit
 
@@ -33,6 +33,10 @@ Harness's model directory. Please support the original project.
 - **Jump shortcuts.** `Cmd`+`1`…`9` on macOS, `Ctrl`+`1`…`9` elsewhere, select
   the first nine rows of the visible list; each of those rows shows its chord in
   a `kbd` chip. The listener is live only while the card is open.
+- **Toggle shortcut.** `Cmd`+`M` on macOS, `Ctrl`+`M` elsewhere, opens the card
+  when it is closed and closes it when it is open, from anywhere in the window
+  including the composer editor. The trigger's tooltip carries the chord. On a
+  locked session the chord is inert, as the trigger is.
 - **Unavailable models.** Providers the host does not report as routable are
   marked on their rows, on the rail tile's tooltip, and on the trigger.
 - **Reasoning effort.** A footer row opens the effort levels the current model
@@ -88,7 +92,7 @@ surfaces show next, and a selection made there is what this picker highlights.
 
 ## Differences from T3 Code
 
-Three deliberate departures, all recorded in `client.js`:
+Four deliberate departures, all recorded in `client.js`:
 
 - Search results are grouped under provider headings. T3 renders one flat
   ranked list with the provider named on each row.
@@ -97,12 +101,20 @@ Three deliberate departures, all recorded in `client.js`:
   only effort control.
 - The row of the model in use carries a check mark. This seat is single-select
   and the trigger is not always in view.
+- `Cmd`/`Ctrl`+`M` opens and closes the card. T3 leaves opening to the trigger
+  alone, so a chord bound to the trigger would mean holding `Cmd` and reaching
+  for the mouse.
 
 ## Known limits
 
 - The picker needs a session-scoped model directory. Addressed subagent
-  sessions expose none, so the seat stays absent there.
-- Jump chords are open-only, as in T3. There is no closed-picker shortcut.
+  sessions expose none, so the seat stays absent there and the chord has
+  nothing to open.
+- Jump chords stay open-only, as in T3. `Cmd`/`Ctrl`+`M` is the one chord that
+  works with the card closed.
+- The chord claims `Cmd`/`Ctrl`+`M` window-wide, so it takes that chord away
+  from text fields. On macOS that means the "move to end of line" binding in
+  the composer editor no longer fires while this plugin is loaded.
 - The effort footer only ever shows models whose provider advertises reasoning
   metadata.
 
@@ -111,9 +123,19 @@ Three deliberate departures, all recorded in `client.js`:
 No build step: `client.js` is plain JavaScript in the format the client module
 loader takes. Edit it and reload the page.
 
-`scripts/` holds the recording tooling used for the assets above. It drives the
-running DeepSeek Harness page over the Chrome DevTools Protocol, so no browser
-download is needed:
+`scripts/verify-shortcuts.mjs` checks the chords against the real component. It
+mounts `client.js` in a jsdom page with React and dispatches real key events at
+the window, so a chord change is verified without the desktop app. The plugin
+has no dependencies, so the harness brings its own:
+
+```sh
+npm install --no-save react react-dom jsdom
+node scripts/verify-shortcuts.mjs
+```
+
+`scripts/` also holds the recording tooling used for the assets above. It drives
+the running DeepSeek Harness page over the Chrome DevTools Protocol, so no
+browser download is needed:
 
 ```sh
 node scripts/record.mjs <run-dir>                       # frames + stills + timeline
